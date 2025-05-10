@@ -1,10 +1,11 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './App.tsx'
+import './style.css';
+import { router } from './router';
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-)
+const app = document.querySelector<HTMLDivElement>('#app');
+
+if (app) {
+  console.log('App element found, initializing router...');
+  router.init(app);
+} else {
+  console.error('App element not found!');
+}
