@@ -252,3 +252,40 @@ body {
   display: flex;
   align-items: center;
 }
+
+/* PDF Card Grid */
+.library-content {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 32px 18px;
+  padding: 32px 32px 0 32px;
+  justify-items: start;
+  align-items: start;
+}
+
+.pdf-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  border: 1px solid #ececec;
+  width: 140px;
+  height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: box-shadow 0.18s, border 0.18s;
+  cursor: pointer;
+}
+.pdf-card:hover {
+  box-shadow: 0 6px 24px rgba(162,89,255,0.13);
+  border: 1.5px solid #a259ff;
+}
+
+.pdf-icon {
+  margin-top: 18px;
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

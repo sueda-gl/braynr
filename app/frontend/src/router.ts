@@ -1,24 +1,40 @@
 // src/router.tsx
 import { LibraryPage } from './pages/LibraryPage';
+import { ViewerPage } from './pages/ViewerPage';
 
 class Router {
   private container: HTMLElement | null = null;
 
   init(container: HTMLElement) {
-    console.log('Router initializing...');
     this.container = container;
-    this.renderLibrary();
+    window.addEventListener('hashchange', () => this.route());
+    this.route();
   }
 
-  private renderLibrary() {
+  private route() {
     if (!this.container) {
       console.error('No container found');
       return;
     }
+    const hash = window.location.hash;
+    if (hash.startsWith('#/viewer/')) {
+      const id = hash.replace('#/viewer/', '');
+      this.renderViewer(id);
+    } else {
+      this.renderLibrary();
+    }
+  }
 
-    console.log('Rendering Library Page');
+  private renderLibrary() {
+    if (!this.container) return;
     this.container.innerHTML = '';
     this.container.appendChild(LibraryPage());
+  }
+
+  private renderViewer(id: string) {
+    if (!this.container) return;
+    this.container.innerHTML = '';
+    this.container.appendChild(ViewerPage(id));
   }
 }
 

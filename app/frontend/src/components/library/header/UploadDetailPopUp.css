@@ -1,0 +1,204 @@
+/* Overlay */
+.udp-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.18);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Modal */
+.udp-modal {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  padding: 38px 38px 28px 38px;
+  min-width: 480px;
+  max-width: 98vw;
+  min-height: 420px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.udp-title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: #222;
+}
+
+.udp-subtitle {
+  font-size: 1rem;
+  color: #888;
+  margin-bottom: 22px;
+}
+
+.udp-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.udp-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #888;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.udp-title-input {
+  width: 100%;
+  font-size: 1.08rem;
+  padding: 10px 12px;
+  border-radius: 7px;
+  border: none;
+  background: #f5f5f5;
+  margin-top: 2px;
+  margin-bottom: 0;
+  color: #222;
+  font-weight: 500;
+}
+
+.udp-authors-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.udp-author-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.udp-author-input {
+  flex: 1;
+  font-size: 1rem;
+  padding: 8px 10px;
+  border-radius: 7px;
+  border: none;
+  background: #f5f5f5;
+  color: #222;
+}
+
+.udp-remove-author-btn {
+  background: none;
+  border: none;
+  color: #c44;
+  font-size: 1.2rem;
+  cursor: pointer;
+  margin-left: 6px;
+  margin-top: 2px;
+  transition: color 0.15s;
+}
+.udp-remove-author-btn:hover {
+  color: #a259ff;
+}
+
+.udp-add-author-btn {
+  background: #f5f5f5;
+  color: #4a4a4a;
+  border: none;
+  border-radius: 7px;
+  padding: 7px 18px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  align-self: flex-start;
+  margin-top: 2px;
+  transition: background 0.15s, color 0.15s;
+}
+.udp-add-author-btn:hover {
+  background: #eae6fa;
+  color: #a259ff;
+}
+
+.udp-pubyear-row {
+  display: flex;
+  gap: 10px;
+}
+
+.udp-publisher-input {
+  flex: 2;
+  font-size: 1rem;
+  padding: 8px 10px;
+  border-radius: 7px;
+  border: none;
+  background: #f5f5f5;
+  color: #222;
+}
+
+.udp-year-input {
+  flex: 1;
+  font-size: 1rem;
+  padding: 8px 10px;
+  border-radius: 7px;
+  border: none;
+  background: #f5f5f5;
+  color: #222;
+  max-width: 110px;
+}
+
+.udp-topic-input {
+  width: 100%;
+  font-size: 1rem;
+  padding: 8px 10px;
+  border-radius: 7px;
+  border: none;
+  background: #f5f5f5;
+  color: #222;
+}
+
+.udp-input-error {
+  border: 2px solid #e74c3c !important;
+  background: #fff0f0 !important;
+}
+
+.udp-btn-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.udp-cancel-btn {
+  background: none;
+  color: #888;
+  border: none;
+  border-radius: 7px;
+  padding: 8px 22px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.udp-cancel-btn:hover {
+  background: #f5f5f5;
+  color: #a259ff;
+}
+
+.udp-upload-btn {
+  background: #6366f1;
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  padding: 8px 22px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.udp-upload-btn:hover {
+  background: #a259ff;
+}
+
+@media (max-width: 600px) {
+  .udp-modal {
+    min-width: 98vw;
+    padding: 18px 4vw 18px 4vw;
+  }
+} 

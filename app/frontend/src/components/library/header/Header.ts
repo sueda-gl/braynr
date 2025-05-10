@@ -1,6 +1,6 @@
 import { SearchBar } from './SearchBar';
 
-export const Header = (): HTMLElement => {
+export const Header = (onAddPdf?: (file: File) => void): HTMLElement => {
   const header = document.createElement('header');
   header.className = 'header';
   
@@ -69,12 +69,27 @@ export const Header = (): HTMLElement => {
   const addButton = document.createElement('button');
   addButton.className = 'add-text-button';
   addButton.innerHTML = '<span class="plus-icon">+</span> Add text';
-  
+
+  // File input (hidden)
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.accept = 'application/pdf';
+  fileInput.style.display = 'none';
+  addButton.onclick = () => fileInput.click();
+  fileInput.onchange = (e: any) => {
+    const file = fileInput.files && fileInput.files[0];
+    if (file && onAddPdf) {
+      onAddPdf(file);
+      fileInput.value = '';
+    }
+  };
+  centerSection.appendChild(addButton);
+  centerSection.appendChild(fileInput);
+
   // Search bar
   const searchBar = SearchBar();
   
   leftSection.appendChild(dotsMenu);
-  centerSection.appendChild(addButton);
   rightSection.appendChild(searchBar);
   
   header.appendChild(leftSection);
