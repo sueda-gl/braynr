@@ -1,6 +1,11 @@
 import './GeneratedContentsSidebar.css';
 
-export function GeneratedContentsSidebar(): HTMLElement {
+interface SidebarOptions {
+  getScreenshot?: () => string | null;
+  onClearScreenshot?: () => void;
+}
+
+export function GeneratedContentsSidebar(opts?: SidebarOptions): HTMLElement {
   const sidebar = document.createElement('div');
   sidebar.className = 'generated-contents-sidebar';
 
@@ -36,10 +41,37 @@ export function GeneratedContentsSidebar(): HTMLElement {
   function updateContent() {
     content.innerHTML = '';
     if (activeItem === 'Video Explanations') {
-      const placeholder = document.createElement('div');
-      placeholder.className = 'placeholder-icon';
-      placeholder.innerHTML = '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#a259ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M10 8l6 4-6 4V8z"/></svg>';
-      content.appendChild(placeholder);
+      const screenshot = opts && typeof opts.getScreenshot === 'function' ? opts.getScreenshot() : null;
+      if (screenshot) {
+        const img = document.createElement('img');
+        img.src = screenshot;
+        img.alt = 'Screenshot';
+        img.style.maxWidth = '100%';
+        img.style.display = 'block';
+        img.style.margin = '16px auto';
+        content.appendChild(img);
+        const clearBtn = document.createElement('button');
+        clearBtn.textContent = 'Clear Screenshot';
+        clearBtn.className = 'clear-screenshot-btn';
+        clearBtn.onclick = () => {
+          if (opts && typeof opts.onClearScreenshot === 'function') {
+            opts.onClearScreenshot();
+          }
+        };
+        content.appendChild(clearBtn);
+      } else {
+        const placeholder = document.createElement('div');
+        placeholder.className = 'placeholder-text';
+        placeholder.textContent = 'Make a selection by dragging and dropping to select the area.';
+        placeholder.style.color = '#888';
+        placeholder.style.textAlign = 'center';
+        placeholder.style.marginBottom = '8px';
+        const infoIcon = document.createElement('div');
+        infoIcon.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
+        infoIcon.style.textAlign = 'center';
+        content.appendChild(placeholder);
+        content.appendChild(infoIcon);
+      }
     }
   }
 
@@ -78,6 +110,11 @@ export function GeneratedContentsSidebar(): HTMLElement {
     document.removeEventListener('mousemove', handleMouseMove);
     document.removeEventListener('mouseup', handleMouseUp);
   }
+
+  // Expose updateScreenshot for parent
+  (sidebar as any).updateScreenshot = function () {
+    updateContent();
+  };
 
   return sidebar;
 } 

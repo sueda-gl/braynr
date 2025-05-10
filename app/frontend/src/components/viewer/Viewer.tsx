@@ -15,6 +15,9 @@ export function Viewer(id: string): HTMLElement {
   let rightSidebarOpen = false;
   let currentPage = 1;
 
+  // Screenshot state
+  let screenshot: string | null = null;
+
   // Header with toggle logic for right sidebar
   const header = ViewerHeader({
     onToggleSidebar: () => {
@@ -48,12 +51,22 @@ export function Viewer(id: string): HTMLElement {
       if (canvases[page - 1]) {
         canvases[page - 1].scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
+    },
+    onScreenshot: (img: string) => {
+      screenshot = img;
+      updateRightSidebar();
     }
   });
   main.appendChild(pdfViewer);
 
   // Right sidebar (generated contents)
-  const rightSidebar = GeneratedContentsSidebar();
+  const rightSidebar = GeneratedContentsSidebar({
+    getScreenshot: () => screenshot,
+    onClearScreenshot: () => {
+      screenshot = null;
+      updateRightSidebar();
+    }
+  });
   rightSidebar.classList.add('generated-contents-sidebar');
   main.appendChild(rightSidebar);
 
@@ -134,6 +147,9 @@ export function Viewer(id: string): HTMLElement {
   }
 
   function updateRightSidebar() {
+    if (typeof (rightSidebar as any).updateScreenshot === 'function') {
+      (rightSidebar as any).updateScreenshot(screenshot);
+    }
     // Add transitionend listener only once
     if (rightSidebar && !rightSidebarListeners.has(rightSidebar)) {
       rightSidebar.addEventListener('transitionend', (e: TransitionEvent) => {
