@@ -6,7 +6,7 @@ export const Sidebar = (activeSection: string, onNavigate: (section: string) => 
   
   const title = document.createElement('h1');
   title.className = 'sidebar-title';
-  title.textContent = 'Braynn';
+  title.textContent = 'Braynr';
   
   const libraryButton = NavButton({
     label: 'Library',

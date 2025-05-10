@@ -1,4 +1,3 @@
-// src/components/library/header/Header.tsx
 import { SearchBar } from './SearchBar';
 
 export const Header = (): HTMLElement => {
@@ -7,6 +6,9 @@ export const Header = (): HTMLElement => {
   
   const leftSection = document.createElement('div');
   leftSection.className = 'header-left';
+  
+  const centerSection = document.createElement('div');
+  centerSection.className = 'header-center';
   
   const rightSection = document.createElement('div');
   rightSection.className = 'header-right';
@@ -17,7 +19,11 @@ export const Header = (): HTMLElement => {
   
   const dotsButton = document.createElement('button');
   dotsButton.className = 'dots-menu-button';
-  dotsButton.innerHTML = '⋮';
+  dotsButton.innerHTML = `
+    <span class="dot vertical-dot"></span>
+    <span class="dot vertical-dot"></span>
+    <span class="dot vertical-dot"></span>
+  `;
   
   const dropdown = document.createElement('div');
   dropdown.className = 'dots-dropdown';
@@ -68,10 +74,11 @@ export const Header = (): HTMLElement => {
   const searchBar = SearchBar();
   
   leftSection.appendChild(dotsMenu);
-  leftSection.appendChild(addButton);
+  centerSection.appendChild(addButton);
   rightSection.appendChild(searchBar);
   
   header.appendChild(leftSection);
+  header.appendChild(centerSection);
   header.appendChild(rightSection);
   
   return header;
