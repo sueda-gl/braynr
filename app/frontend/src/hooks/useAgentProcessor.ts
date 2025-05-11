@@ -103,20 +103,24 @@ export function useAgentProcessor() {
         setStatusMessage(`Connecting to agent for job ${currentJobId}...`);
         setAgentStatus('connecting');
 
+        console.log('[DEBUG] Attempting to create WebSocket object for:', websocketUrl);
         const ws = new WebSocket(websocketUrl);
         webSocketRef.current = ws;
+        console.log('[DEBUG] WebSocket object created. Assigning event handlers.');
 
         ws.onopen = () => {
-            console.log('WebSocket connection established for job:', currentJobId);
+            // alert('WebSocket ONOPEN fired!'); // Intrusive, use console.log first
+            console.log('!!! WebSocket connection ESTABLISHED for job:', currentJobId);
             setStatusMessage('Connected to agent. Waiting for updates...');
-            setAgentStatus('processing'); // Or wait for first status update?
+            setAgentStatus('processing');
         };
 
         ws.onmessage = (event) => {
             try {
                 const rawMessage = event.data;
-                console.log('WebSocket message received:', rawMessage);
+                console.log('>>> WebSocket RAW message received:', rawMessage);
                 const message = JSON.parse(rawMessage as string) as AgentWebSocketMessage;
+                console.log('>>> WebSocket PARSED message:', message);
 
                 // Update job ID from message if not already set (though it should be)
                 if (!jobId && message.job_id) setJobId(String(message.job_id));
@@ -166,7 +170,7 @@ export function useAgentProcessor() {
         };
 
         ws.onerror = (error) => {
-            console.error('WebSocket error:', error);
+            console.error('!!! WebSocket error EVENT:', error);
             setErrorMessage('WebSocket connection error. Ensure the backend is running and accessible.');
             setStatusMessage('Connection error.');
             setAgentStatus('failed');
@@ -174,7 +178,11 @@ export function useAgentProcessor() {
         };
 
         ws.onclose = (event) => {
-            console.log('WebSocket connection closed:', event.code, event.reason);
+            console.log(
+                '!!! WebSocket connection CLOSED. Code:', event.code, 
+                'Reason:', event.reason, 
+                'Was clean:', event.wasClean
+            );
             // Only reset to idle if not already in a terminal state (completed/failed)
             if (agentStatus !== 'completed' && agentStatus !== 'failed') {
                 setStatusMessage('Disconnected from agent.');

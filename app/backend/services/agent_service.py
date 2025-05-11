@@ -11,6 +11,7 @@ from app.backend.schemas.websocket_messages import (
 )
 import traceback # For logging full error trace
 import re # For extracting placeholders from instruction templates
+import asyncio # Add asyncio for the sleep
 
 # Import Google ADK dependencies
 from google.adk.sessions import InMemorySessionService
@@ -182,7 +183,7 @@ async def process_agent_job(job_id: int, input_text: str, user_prompt: str | Non
             # Get the final code (or empty string if not available)
             final_code = final_state.get('refactored_code', 'No refactored code produced.')
             
-            # Update job status to completed
+            # Update job status to completed FIRST
             await update_job_status_and_broadcast(
                 db, job_id, job_id_str, 
                 JOB_STATUS_COMPLETED, 
@@ -191,8 +192,13 @@ async def process_agent_job(job_id: int, input_text: str, user_prompt: str | Non
             )
             
             # Send final result
-            ws_final_msg = WebSocketFinalResult(job_id=job_id, refactored_code=final_code).model_dump()
+            ws_final_msg = WebSocketFinalResult(job_id=job_id, refactored_code=final_code, video_url=None, manim_error=None).model_dump()
+            
+            print(f"Job {job_id}: PREPARING TO SEND FINAL RESULT. Code (first 100 chars): {str(final_code)[:100]}. Message object: {ws_final_msg}")
+            # Introduce a small delay to allow WebSocket connection to fully register
+            await asyncio.sleep(0.2) # Adjust delay if needed, e.g., 0.1 to 0.5 seconds
             await manager.broadcast_to_job(job_id_str, ws_final_msg)
+            print(f"Job {job_id}: ATTEMPTED TO SEND FINAL RESULT.")
             
         except Exception as agent_exc:
             error_message = f"Error in agent execution: {str(agent_exc)}"

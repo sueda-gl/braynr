@@ -26,7 +26,8 @@ class WebSocketPartialResult(WebSocketMessageBase):
 class WebSocketFinalResult(WebSocketMessageBase):
     type: Literal["final_result"] = "final_result"
     refactored_code: str | None = None
-    # video_url: str | None = None # For future use
+    video_url: str | None = None # For Manim video link
+    manim_error: str | None = None # For any errors during Manim processing
     message: str = "Processing completed successfully."
 
 class WebSocketError(WebSocketMessageBase):
