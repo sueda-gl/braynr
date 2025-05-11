@@ -1,4 +1,4 @@
-```python
+
 from manim import *
 
 class TextExtractionExplanation(Scene):
@@ -114,4 +114,3 @@ class TextExtractionExplanation(Scene):
         question_mark.remove_updater(bounce) # Remove the updater to prevent errors
         self.play(FadeIn(text_box), FadeIn(prompt_text), FadeIn(cursor), run_time=1)
         self.wait(1)
-```
