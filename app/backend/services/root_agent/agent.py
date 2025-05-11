@@ -7,9 +7,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Get API key from environment
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-if not GOOGLE_API_KEY:
-    raise ValueError("GOOGLE_API_KEY environment variable not found. Please add it to your .env file.")
+# GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+# if not GOOGLE_API_KEY:
+#     raise ValueError("GOOGLE_API_KEY environment variable not found. Please add it to your .env file.")
 
 # Get OpenAI API key from environment
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -91,10 +91,13 @@ Output *only* the raw Python code, enclosed in triple backticks: ```python ... `
 
 1.  **START WITH:** The script MUST begin *exactly* with `from manim import *`. Standard Python imports like `import numpy as np` are allowed if needed.
 
-2.  **NO EXTERNAL ASSETS (VERY IMPORTANT FOR THIS TEST):**
+2.  **NO EXTERNAL ASSETS OR LATEX/TEX (EXTREMELY IMPORTANT):**
     *   ABSOLUTELY DO NOT USE `SVGMobject`.
     *   ABSOLUTELY DO NOT USE `ImageMobject`.
-    *   All visuals MUST be created using ONLY Manim's built-in shapes (e.g., `Circle`, `Square`, `Rectangle`, `RoundedRectangle`, `Line`, `Polygon`, `Dot`, `Arrow`, `Triangle`) and Manim's text objects (`Text`, `Tex`).
+    *   ABSOLUTELY DO NOT USE `Tex()`, `MathTex()`, or ANY LaTeX-based text objects.
+    *   Use ONLY `Text()` objects for ALL text in the animation.
+    *   For mathematical symbols and equations, use simple Unicode in Text objects (e.g., `Text("x²")`, `Text("Σ")`, `Text("det(A)")`, `Text("|A|")`, etc.)
+    *   All visuals MUST be created using ONLY Manim's built-in shapes (e.g., `Circle`, `Square`, `Rectangle`, `RoundedRectangle`, `Line`, `Polygon`, `Dot`, `Arrow`, `Triangle`) and Manim's `Text` objects only.
     *   Do NOT reference any external files (e.g., `.svg`, `.png`, `.jpg`, `.mp3`, `.wav`).
     *   Do NOT use `self.add_sound()` or any other sound-related functions.
 

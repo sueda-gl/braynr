@@ -1,8 +1,9 @@
 import React, { useState, useCallback } from 'react';
 import { Sidebar } from './sidebar/Sidebar';
 import { Header } from './header/Header';
-import { LibraryContent } from './content/LibraryContent';
-import { UploadDetailPopUp, UploadFormData } from './header/UploadDetailPopUp';
+import { LibraryContent } from './content/LibraryContent.tsx';
+import { UploadDetailPopUp } from './header/UploadDetailPopUp.tsx';
+import type { UploadFormData } from './header/UploadDetailPopUp.tsx';
 
 export interface StoredUpload extends UploadFormData {
   pdfData: string | ArrayBuffer | null;
@@ -29,7 +30,7 @@ export const Library: React.FC = () => {
     if (modalFile) {
       const reader = new FileReader();
       reader.onload = function (e) {
-        const pdfData = e.target?.result;
+        const pdfData = e.target?.result ?? null;
         const newUpload: StoredUpload = {
           ...data,
           pdfData,
