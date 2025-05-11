@@ -1,9 +1,13 @@
 # app/main.py
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from app.backend.config import settings
 from app.backend.database import engine, Base
+from app.backend.models.agent_job import AgentJob
+from app.backend.routes import agent_router
+from app.backend.websockets import ws_router
+import time
 
 # Create the FastAPI application
 app = FastAPI(
@@ -12,13 +16,22 @@ app = FastAPI(
     version=settings.API_VERSION
 )
 
-# Configure CORS
+# Print explicitly for debugging
+print("\n\n")
+print("*" * 80)
+print(f"CONFIGURING CORS WITH ORIGINS: {settings.cors_origins_list}")
+print("*" * 80)
+print("\n\n")
+
+# Configure CORS with explicit options
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=settings.cors_origins_list,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["*"],  # Allow all methods including OPTIONS
+    allow_headers=["*"],  # Allow all headers including Content-Type
+    expose_headers=["*"],
+    max_age=86400,  # Cache preflight for a day
 )
 
 # Create database tables on startup in development (for simplicity)
@@ -35,7 +48,18 @@ async def health_check():
     """Check if the API is running."""
     return {"status": "healthy", "version": settings.API_VERSION}
 
-# TODO: Import and register your routers here
+# CORS test endpoint to verify CORS headers
+@app.options("/cors-test")
+async def cors_test(request: Request, response: Response):
+    origin = request.headers.get("Origin", "")
+    print(f"CORS TEST - Received OPTIONS request from: {origin}")
+    # CORS headers will be added by middleware
+    return {"message": "CORS headers should be present in response"}
+
+# Import and register your routers here
+app.include_router(agent_router.router)
+app.include_router(ws_router.router)
+
 # Example:
 # from app.routes import course_router
 # app.include_router(course_router, prefix="/api/courses", tags=["courses"])

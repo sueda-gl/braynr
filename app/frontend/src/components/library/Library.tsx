@@ -1,67 +1,77 @@
+import React, { useState, useCallback } from 'react';
 import { Sidebar } from './sidebar/Sidebar';
 import { Header } from './header/Header';
 import { LibraryContent } from './content/LibraryContent';
-import { UploadDetailPopUp } from './header/UploadDetailPopUp';
+import { UploadDetailPopUp, UploadFormData } from './header/UploadDetailPopUp';
 
-export const Library = (): HTMLElement => {
-  let activeSection = 'library';
-  let modal: HTMLElement | null = null;
-  
-  const container = document.createElement('div');
-  container.className = 'library-container';
-  
-  const mainContent = document.createElement('div');
-  mainContent.className = 'main-content';
-  
-  function showModal(file: File) {
-    // Show the upload detail popup
-    modal = UploadDetailPopUp({
-      fileName: file.name,
-      onSubmit: (data) => {
-        // Read file as data URL for storage
-        const reader = new FileReader();
-        reader.onload = function (e) {
-          const pdfData = e.target?.result;
-          // Save to localStorage
-          const stored = JSON.parse(localStorage.getItem('libraryUploads') || '[]');
-          stored.push({
-            ...data,
-            pdfData,
-            fileName: file.name,
-            uploadedAt: Date.now(),
-          });
-          localStorage.setItem('libraryUploads', JSON.stringify(stored));
-          render();
+export interface StoredUpload extends UploadFormData {
+  pdfData: string | ArrayBuffer | null;
+  fileName: string;
+  uploadedAt: number;
+}
+
+export const Library: React.FC = () => {
+  const [activeSection, setActiveSection] = useState<string>('library');
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [modalFile, setModalFile] = useState<File | null>(null);
+  // We need a way to trigger re-renders in LibraryContent when uploads change
+  const [uploads, setUploads] = useState<StoredUpload[]>(() => {
+    const savedUploads = localStorage.getItem('libraryUploads');
+    return savedUploads ? JSON.parse(savedUploads) : [];
+  });
+
+  const handleShowModal = useCallback((file: File) => {
+    setModalFile(file);
+    setIsModalOpen(true);
+  }, []);
+
+  const handleModalSubmit = useCallback((data: UploadFormData) => {
+    if (modalFile) {
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const pdfData = e.target?.result;
+        const newUpload: StoredUpload = {
+          ...data,
+          pdfData,
+          fileName: modalFile.name,
+          uploadedAt: Date.now(),
         };
-        reader.readAsDataURL(file);
-      },
-      onCancel: () => {
-        if (modal) modal.remove();
-        modal = null;
-      }
-    });
-    document.body.appendChild(modal);
-  }
+        setUploads(prevUploads => {
+          const updatedUploads = [...prevUploads, newUpload];
+          localStorage.setItem('libraryUploads', JSON.stringify(updatedUploads));
+          return updatedUploads;
+        });
+        setIsModalOpen(false);
+        setModalFile(null);
+      };
+      reader.readAsDataURL(modalFile);
+    }
+  }, [modalFile]);
 
-  const render = () => {
-    container.innerHTML = '';
-    mainContent.innerHTML = '';
-    
-    const sidebar = Sidebar(activeSection, (section) => {
-      activeSection = section;
-      render();
-    });
-    
-    const header = Header(showModal);
-    const content = LibraryContent(activeSection);
-    
-    mainContent.appendChild(header);
-    mainContent.appendChild(content);
-    
-    container.appendChild(sidebar);
-    container.appendChild(mainContent);
-  };
-  
-  render();
-  return container;
+  const handleModalCancel = useCallback(() => {
+    setIsModalOpen(false);
+    setModalFile(null);
+  }, []);
+
+  const handleSectionChange = useCallback((section: string) => {
+    setActiveSection(section);
+  }, []);
+
+  return (
+    <div className='library-container'>
+      <Sidebar activeSection={activeSection} onSectionChange={handleSectionChange} />
+      <div className='main-content'>
+        <Header onShowModal={handleShowModal} />
+        {/* Pass uploads or a key to LibraryContent if it needs to re-render on new uploads */}
+        <LibraryContent activeSection={activeSection} uploads={uploads} />
+      </div>
+      {isModalOpen && modalFile && (
+        <UploadDetailPopUp
+          fileName={modalFile.name}
+          onSubmit={handleModalSubmit}
+          onCancel={handleModalCancel}
+        />
+      )}
+    </div>
+  );
 };

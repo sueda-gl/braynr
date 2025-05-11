@@ -1,189 +1,124 @@
-import { ViewerHeader } from './header/ViewerHeader';
-import { PdfViewer } from './content/PdfViewer';
-import { ThumbnailSidebar } from './content/ThumbnailSidebar';
-import { GeneratedContentsSidebar } from './sidebars/GeneratedContentsSidebar';
+import React, { useState, useEffect, useRef } from 'react';
+import { ViewerHeader as ViewerHeader_vanilla } from './header/ViewerHeader';
+import { PdfViewer as PdfViewer_vanilla } from './content/PdfViewer';
+import { ThumbnailSidebar as ThumbnailSidebar_vanilla } from './content/ThumbnailSidebar';
+import { GeneratedContentsSidebar } from './sidebars/GeneratedContentsSidebar'; 
+
 import './header/ViewerHeader.css';
 import './Viewer.css';
 import './content/ThumbnailSidebar.css';
 
-export function Viewer(id: string): HTMLElement {
-  const container = document.createElement('div');
-  container.className = 'viewer-root';
-
-  // State for sidebar open/closed and current page
-  let sidebarOpen = true;
-  let rightSidebarOpen = false;
-  let currentPage = 1;
-
-  // Screenshot state
-  let screenshot: string | null = null;
-
-  // Header with toggle logic for right sidebar
-  const header = ViewerHeader({
-    onToggleSidebar: () => {
-      sidebarOpen = !sidebarOpen;
-      updateSidebar();
-    },
-    onToggleRightSidebar: () => {
-      rightSidebarOpen = !rightSidebarOpen;
-      updateRightSidebar();
-    }
-  });
-  container.appendChild(header);
-
-  // Main content area
-  const main = document.createElement('div');
-  main.className = 'viewer-main';
-
-  // Left sidebar (thumbnails)
-  let leftSidebar: HTMLElement | null = null;
-  let openSidebarBtn: HTMLElement | null = null;
-
-  // PDF viewer
-  const pdfViewer = PdfViewer(id, {
-    onPageChange: (page: number) => {
-      currentPage = page;
-      setActiveThumbnail(page);
-    },
-    scrollToPage: (page: number) => {
-      // Scroll to the selected page's canvas
-      const canvases = pdfViewer.querySelectorAll('canvas');
-      if (canvases[page - 1]) {
-        canvases[page - 1].scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-    },
-    onScreenshot: (img: string) => {
-      screenshot = img;
-      updateRightSidebar();
-    }
-  });
-  main.appendChild(pdfViewer);
-
-  // Right sidebar (generated contents)
-  const rightSidebar = GeneratedContentsSidebar({
-    getScreenshot: () => screenshot,
-    onClearScreenshot: () => {
-      screenshot = null;
-      updateRightSidebar();
-    }
-  });
-  rightSidebar.classList.add('generated-contents-sidebar');
-  main.appendChild(rightSidebar);
-
-  // Track which sidebars have listeners
-  const sidebarListeners = new WeakSet<HTMLElement>();
-  const rightSidebarListeners = new WeakSet<HTMLElement>();
-
-  function setActiveThumbnail(pageNum: number) {
-    if (leftSidebar) {
-      const thumbs = leftSidebar.querySelectorAll('.thumbnail-canvas');
-      thumbs.forEach((thumb, idx) => {
-        thumb.classList.toggle('active', idx === pageNum - 1);
-      });
-    }
-  }
-
-  function updateSidebar() {
-    // Only create the sidebar once
-    if (!leftSidebar) {
-      leftSidebar = ThumbnailSidebar({
-        pdfId: id,
-        currentPage,
-        onPageSelect: (page: number) => {
-          currentPage = page;
-          setActiveThumbnail(page);
-          // Scroll to the selected page
-          const canvases = pdfViewer.querySelectorAll('canvas');
-          if (canvases[page - 1]) {
-            canvases[page - 1].scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }
-        },
-        onClose: () => {
-          sidebarOpen = false;
-          updateSidebar();
-        }
-      });
-      main.insertBefore(leftSidebar, pdfViewer);
-      setTimeout(() => setActiveThumbnail(currentPage), 0);
-    }
-    // Add transitionend listener only once
-    if (leftSidebar && !sidebarListeners.has(leftSidebar)) {
-      leftSidebar.addEventListener('transitionend', (e: TransitionEvent) => {
-        if (e.propertyName === 'transform') {
-          if (leftSidebar && leftSidebar.classList.contains('closed')) {
-            leftSidebar.style.width = '0';
-            leftSidebar.style.minWidth = '0';
-          } else if (leftSidebar) {
-            leftSidebar.style.width = '';
-            leftSidebar.style.minWidth = '';
-          }
-        }
-      });
-      sidebarListeners.add(leftSidebar);
-    }
-    // Show/hide with animation
-    if (sidebarOpen) {
-      if (leftSidebar) {
-        leftSidebar.style.width = '';
-        leftSidebar.style.minWidth = '';
-        leftSidebar.classList.remove('closed');
-      }
-      if (openSidebarBtn) {
-        openSidebarBtn.remove();
-        openSidebarBtn = null;
-      }
-    } else {
-      if (leftSidebar) leftSidebar.classList.add('closed');
-      if (openSidebarBtn) openSidebarBtn.remove();
-      openSidebarBtn = document.createElement('button');
-      openSidebarBtn.className = 'thumbnail-sidebar-open-btn';
-      openSidebarBtn.innerHTML = '<svg width="24" height="24" fill="none" stroke="#a259ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M4 12h16M4 12l6-6M4 12l6 6"/></svg>';
-      openSidebarBtn.onclick = () => {
-        sidebarOpen = true;
-        updateSidebar();
-      };
-      main.insertBefore(openSidebarBtn, pdfViewer);
-    }
-  }
-
-  function updateRightSidebar() {
-    if (typeof (rightSidebar as any).updateScreenshot === 'function') {
-      (rightSidebar as any).updateScreenshot(screenshot);
-    }
-    // Add transitionend listener only once
-    if (rightSidebar && !rightSidebarListeners.has(rightSidebar)) {
-      rightSidebar.addEventListener('transitionend', (e: TransitionEvent) => {
-        if (e.propertyName === 'transform') {
-          if (rightSidebar.classList.contains('closed')) {
-            rightSidebar.style.width = '0';
-            rightSidebar.style.minWidth = '0';
-          } else {
-            rightSidebar.style.width = '';
-            rightSidebar.style.minWidth = '';
-          }
-        }
-      });
-      rightSidebarListeners.add(rightSidebar);
-    }
-    // Fix: On initial render, if closed, set width to 0
-    if (!rightSidebarOpen) {
-      rightSidebar.style.width = '0';
-      rightSidebar.style.minWidth = '0';
-    }
-    if (rightSidebarOpen) {
-      rightSidebar.style.width = '';
-      rightSidebar.style.minWidth = '';
-      rightSidebar.classList.remove('closed');
-    } else {
-      rightSidebar.classList.add('closed');
-      // width will be set to 0 after transition
-    }
-  }
-
-  // Initial render
-  updateSidebar();
-  updateRightSidebar();
-
-  container.appendChild(main);
-  return container;
+// Props for vanilla components (simplified)
+interface VanillaComponentProps {
+  onToggleSidebar?: () => void;
+  onToggleRightSidebar?: () => void;
+  onPageChange?: (page: number) => void;
+  onScreenshot?: (img: string) => void;
+  pdfId?: string;
+  id?: string; // for PdfViewer
+  currentPage?: number;
+  onPageSelect?: (page: number) => void;
+  onClose?: () => void;
+  // Add scrollToPage if its signature is known and needed for PdfViewer opts
 }
+
+export const Viewer: React.FC<{ id: string }> = ({ id }) => {
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [rightSidebarOpen, setRightSidebarOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [screenshot, setScreenshot] = useState<string | null>(null);
+
+  const headerContainerRef = useRef<HTMLDivElement>(null);
+  const pdfViewerContainerRef = useRef<HTMLDivElement>(null);
+  const leftSidebarContainerRef = useRef<HTMLDivElement>(null);
+  const openSidebarButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Mount ViewerHeader
+  useEffect(() => {
+    if (headerContainerRef.current) {
+      const headerElement = ViewerHeader_vanilla({
+        onToggleSidebar: () => setSidebarOpen(prev => !prev),
+        onToggleRightSidebar: () => setRightSidebarOpen(prev => !prev)
+      });
+      headerContainerRef.current.innerHTML = ''; 
+      headerContainerRef.current.appendChild(headerElement);
+    }
+  }, []); 
+
+  // Mount and manage PdfViewer
+  useEffect(() => {
+    if (pdfViewerContainerRef.current) {
+      const pdfViewerElement = PdfViewer_vanilla(id, {
+        onPageChange: (page: number) => setCurrentPage(page),
+        onScreenshot: (img: string) => setScreenshot(img)
+        // scrollToPage: (page: number) => { /* original scroll logic for canvases in pdfViewerElement */ }
+      });
+      pdfViewerContainerRef.current.innerHTML = '';
+      pdfViewerContainerRef.current.appendChild(pdfViewerElement);
+    }
+  }, [id]); 
+
+  // Mount and manage ThumbnailSidebar (left sidebar)
+  useEffect(() => {
+    if (leftSidebarContainerRef.current) {
+      if (sidebarOpen) {
+        const thumbnailSidebarElement = ThumbnailSidebar_vanilla({
+          pdfId: id,
+          currentPage: currentPage,
+          onPageSelect: (page: number) => {
+            setCurrentPage(page);
+            // TODO: Implement setActiveThumbnail or direct scroll if PdfViewer instance needed
+            // const canvases = pdfViewerContainerRef.current?.querySelector('.pdf-viewer-container canvas'); // This needs to target canvases inside the PdfViewer rendered content
+            // if (canvases && canvases[page - 1]) { ... }
+          },
+          onClose: () => setSidebarOpen(false)
+        });
+        leftSidebarContainerRef.current.innerHTML = '';
+        leftSidebarContainerRef.current.appendChild(thumbnailSidebarElement);
+        leftSidebarContainerRef.current.classList.remove('closed');
+        if (openSidebarButtonRef.current) openSidebarButtonRef.current.style.display = 'none';
+      } else {
+        leftSidebarContainerRef.current.innerHTML = ''; // Clear content when closed
+        leftSidebarContainerRef.current.classList.add('closed');
+        if (openSidebarButtonRef.current) openSidebarButtonRef.current.style.display = 'flex';
+      }
+    }
+  }, [sidebarOpen, id, currentPage]);
+
+  // Active thumbnail logic - needs to be adapted as PdfViewer is a black box here
+  // The original setActiveThumbnail manipulated DOM inside pdfViewer and leftSidebar directly.
+  // This is harder when vanilla components are simply mounted.
+  // For now, this part is simplified.
+
+  return (
+    <div className="viewer-root">
+      <div ref={headerContainerRef} className="viewer-header-container"></div>
+      <div className={`viewer-main ${!sidebarOpen ? 'left-sidebar-closed' : ''} ${rightSidebarOpen ? 'right-sidebar-open-class' : ''}`}>
+        
+        <div ref={leftSidebarContainerRef} className={`thumbnail-sidebar-wrapper ${!sidebarOpen ? 'closed' : ''}`}></div>
+        {!sidebarOpen && (
+            <button 
+                ref={openSidebarButtonRef}
+                className="thumbnail-sidebar-open-btn" 
+                onClick={() => setSidebarOpen(true)} 
+            >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+            </button>
+        )}
+
+        <div ref={pdfViewerContainerRef} className="pdf-viewer-wrapper"></div>
+        
+        <div className={`generated-contents-sidebar-wrapper ${!rightSidebarOpen ? 'closed' : 'open'}`}>
+          {/* Render GeneratedContentsSidebar only when it should be open */}
+          {/* The visibility/animation is handled by CSS based on parent's class */}
+          {rightSidebarOpen && (
+            <GeneratedContentsSidebar
+              initialScreenshot={screenshot} // Pass the current screenshot state
+              onClearScreenshot={() => setScreenshot(null)} // Allow sidebar to clear Viewer's screenshot state
+            />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};

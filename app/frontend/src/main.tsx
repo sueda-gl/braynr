@@ -1,5 +1,5 @@
 import './style.css';
-import { router } from './router';
+import { router } from './router.tsx';
 
 const app = document.querySelector<HTMLDivElement>('#app');
 

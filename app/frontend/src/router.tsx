@@ -1,19 +1,24 @@
 // src/router.tsx
+import React from 'react';
+import ReactDOM from 'react-dom/client';
 import { LibraryPage } from './pages/LibraryPage';
 import { ViewerPage } from './pages/ViewerPage';
 
 class Router {
   private container: HTMLElement | null = null;
+  private reactRoot: ReactDOM.Root | null = null;
 
   init(container: HTMLElement) {
     this.container = container;
+    this.container.innerHTML = '';
+    this.reactRoot = ReactDOM.createRoot(container);
     window.addEventListener('hashchange', () => this.route());
     this.route();
   }
 
   private route() {
-    if (!this.container) {
-      console.error('No container found');
+    if (!this.reactRoot) {
+      console.error('Router not properly initialized with a React root.');
       return;
     }
     const hash = window.location.hash;
@@ -26,15 +31,21 @@ class Router {
   }
 
   private renderLibrary() {
-    if (!this.container) return;
-    this.container.innerHTML = '';
-    this.container.appendChild(LibraryPage());
+    if (!this.reactRoot) return;
+    this.reactRoot.render(
+      <React.StrictMode>
+        <LibraryPage />
+      </React.StrictMode>
+    );
   }
 
   private renderViewer(id: string) {
-    if (!this.container) return;
-    this.container.innerHTML = '';
-    this.container.appendChild(ViewerPage(id));
+    if (!this.reactRoot) return;
+    this.reactRoot.render(
+      <React.StrictMode>
+        <ViewerPage id={id} />
+      </React.StrictMode>
+    );
   }
 }
 

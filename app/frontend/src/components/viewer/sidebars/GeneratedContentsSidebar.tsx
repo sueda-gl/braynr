@@ -1,120 +1,113 @@
+import React, { useState, useEffect } from 'react';
+import { useAgentProcessor } from '../../../hooks/useAgentProcessor'; // Adjusted path
+import { ChatInterface } from './ChatInterface'; // Import the new ChatInterface
 import './GeneratedContentsSidebar.css';
 
-interface SidebarOptions {
-  getScreenshot?: () => string | null;
-  onClearScreenshot?: () => void;
+interface GeneratedContentsSidebarProps {
+  // Props that Viewer.tsx was passing, if still needed after refactor
+  getScreenshot?: () => string | null; // This will likely be handled by the hook now
+  onClearScreenshot?: () => void;    // This will also be handled by the hook or internally
+  // We might need a prop from Viewer.tsx to inform this component about a new screenshot if 
+  // useAgentProcessor is not sufficient or if Viewer.tsx still manages the raw screenshot capture event.
+  // For now, let's assume handleScreenshotCaptured from the hook is the primary way.
+  initialScreenshot?: string | null; // If Viewer needs to pass an initial screenshot
 }
 
-export function GeneratedContentsSidebar(opts?: SidebarOptions): HTMLElement {
-  const sidebar = document.createElement('div');
-  sidebar.className = 'generated-contents-sidebar';
+export const GeneratedContentsSidebar: React.FC<GeneratedContentsSidebarProps> = (props) => {
+  const {
+    capturedImageDataUrl,    // From useAgentProcessor, replaces props.getScreenshot()
+    handleScreenshotCaptured, // From useAgentProcessor
+    resetAgentState,         // From useAgentProcessor, can be used for onClearScreenshot
+    agentStatus,        // Get these from the hook
+    chatMessages,       // Get these from the hook
+    startAgentProcessing, // Get these from the hook
+    statusMessage,
+    errorMessage
+  } = useAgentProcessor();
 
-  // Create the menu container
-  const menu = document.createElement('div');
-  menu.className = 'sidebar-menu';
-
-  // Define menu items
+  const [activeItem, setActiveItem] = useState<string | null>('Video Explanations'); // Default to Video Explanations
+  // The menu items from the original vanilla JS
   const menuItems = ['Images', 'Keywords', 'Notes', 'Mindmaps', 'Summaries', 'Video Explanations'];
-  let activeItem: string | null = null;
 
-  // Create menu buttons
-  menuItems.forEach(item => {
-    const button = document.createElement('button');
-    button.className = 'menu-button';
-    button.textContent = item;
-    button.addEventListener('click', () => {
-      // Remove active class from all buttons
-      menu.querySelectorAll('.menu-button').forEach(btn => btn.classList.remove('active'));
-      // Add active class to clicked button
-      button.classList.add('active');
-      activeItem = item;
-      updateContent();
-    });
-    menu.appendChild(button);
-  });
-
-  // Create the content area
-  const content = document.createElement('div');
-  content.className = 'sidebar-content';
-
-  // Function to update content based on active menu item
-  function updateContent() {
-    content.innerHTML = '';
-    if (activeItem === 'Video Explanations') {
-      const screenshot = opts && typeof opts.getScreenshot === 'function' ? opts.getScreenshot() : null;
-      if (screenshot) {
-        const img = document.createElement('img');
-        img.src = screenshot;
-        img.alt = 'Screenshot';
-        img.style.maxWidth = '100%';
-        img.style.display = 'block';
-        img.style.margin = '16px auto';
-        content.appendChild(img);
-        const clearBtn = document.createElement('button');
-        clearBtn.textContent = 'Clear Screenshot';
-        clearBtn.className = 'clear-screenshot-btn';
-        clearBtn.onclick = () => {
-          if (opts && typeof opts.onClearScreenshot === 'function') {
-            opts.onClearScreenshot();
-          }
-        };
-        content.appendChild(clearBtn);
-      } else {
-        const placeholder = document.createElement('div');
-        placeholder.className = 'placeholder-text';
-        placeholder.textContent = 'Make a selection by dragging and dropping to select the area.';
-        placeholder.style.color = '#888';
-        placeholder.style.textAlign = 'center';
-        placeholder.style.marginBottom = '8px';
-        const infoIcon = document.createElement('div');
-        infoIcon.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
-        infoIcon.style.textAlign = 'center';
-        content.appendChild(placeholder);
-        content.appendChild(infoIcon);
-      }
+  // Effect to handle new screenshots coming from props (e.g. from Viewer.tsx)
+  // This acts like the old `(sidebar as any).updateScreenshot` method
+  useEffect(() => {
+    if (props.initialScreenshot && props.initialScreenshot !== capturedImageDataUrl) {
+      handleScreenshotCaptured(props.initialScreenshot);
     }
-  }
+    // If Viewer.tsx manages clearing, we might need a prop to trigger resetAgentState too.
+  }, [props.initialScreenshot, handleScreenshotCaptured, capturedImageDataUrl]);
+  
+  // This effect can be used if Viewer.tsx still directly calls an update function for new screenshots
+  // For example, if Viewer.tsx passes a new screenshot explicitly each time.
+  // useEffect(() => {
+  //   if (props.getScreenshot) {
+  //     const ss = props.getScreenshot();
+  //     if (ss && ss !== capturedImageDataUrl) {
+  //        handleScreenshotCaptured(ss);
+  //     }
+  //   }
+  // }, [props.getScreenshot, handleScreenshotCaptured, capturedImageDataUrl]);
 
-  // Append menu and content to sidebar
-  sidebar.appendChild(menu);
-  sidebar.appendChild(content);
-
-  // Resizable logic
-  let isResizing = false;
-  let startX: number;
-  let startWidth: number;
-
-  const resizer = document.createElement('div');
-  resizer.className = 'sidebar-resizer';
-  sidebar.appendChild(resizer);
-
-  resizer.addEventListener('mousedown', (e) => {
-    isResizing = true;
-    startX = e.clientX;
-    startWidth = sidebar.offsetWidth;
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  });
-
-  function handleMouseMove(e: MouseEvent) {
-    if (!isResizing) return;
-    const delta = e.clientX - startX;
-    const newWidth = startWidth - delta; // Subtract delta to expand left, contract right
-    if (newWidth > 100) { // Minimum width
-      sidebar.style.width = `${newWidth}px`;
+  const handleClearScreenshot = () => {
+    resetAgentState(); // This clears everything including capturedImageDataUrl and chat
+    // If onClearScreenshot prop from Viewer is still relevant for Viewer's own state:
+    if (props.onClearScreenshot) {
+        props.onClearScreenshot();
     }
-  }
-
-  function handleMouseUp() {
-    isResizing = false;
-    document.removeEventListener('mousemove', handleMouseMove);
-    document.removeEventListener('mouseup', handleMouseUp);
-  }
-
-  // Expose updateScreenshot for parent
-  (sidebar as any).updateScreenshot = function () {
-    updateContent();
   };
 
-  return sidebar;
-} 
+  return (
+    <div className="generated-contents-sidebar">
+      <div className="sidebar-menu">
+        {menuItems.map(item => (
+          <button
+            key={item}
+            className={`menu-button ${activeItem === item ? 'active' : ''}`}
+            onClick={() => setActiveItem(item)}
+          >
+            {item}
+          </button>
+        ))}
+      </div>
+      <div className="sidebar-content">
+        {activeItem === 'Video Explanations' ? (
+          <div className="video-explanations-content">
+            {capturedImageDataUrl ? (
+              <div className="screenshot-display">
+                <img 
+                  src={capturedImageDataUrl} 
+                  alt="Screenshot" 
+                  style={{ maxWidth: '100%', display: 'block', margin: '16px auto' }} 
+                />
+                <button onClick={handleClearScreenshot} className="clear-screenshot-btn">
+                  Clear Screenshot
+                </button>
+              </div>
+            ) : (
+              <div className="placeholder-text" style={{ color: '#888', textAlign: 'center', marginBottom: '8px'}}>
+                Make a selection by dragging and dropping to select the area.
+                <div style={{ textAlign: 'center'}} dangerouslySetInnerHTML={{ __html: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>' }} />
+              </div>
+            )}
+            {/* Render ChatInterface only when Video Explanations is active */}
+            <ChatInterface 
+              agentStatus={agentStatus}
+              chatMessages={chatMessages}
+              startAgentProcessing={startAgentProcessing}
+              capturedImageDataUrl={capturedImageDataUrl}
+              statusMessage={statusMessage}
+              errorMessage={errorMessage}
+            />
+          </div>
+        ) : (
+          <div className="placeholder-text" style={{padding: '20px', textAlign: 'center'}}>
+            Content for {activeItem} will be shown here. (Coming Soon)
+          </div>
+        )}
+      </div>
+      {/* Resizer logic would need to be re-implemented in React if still needed */}
+      {/* <div className="sidebar-resizer"></div> */}
+    </div>
+  );
+}; 
