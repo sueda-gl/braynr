@@ -121,6 +121,7 @@ Output *only* the raw Python code, enclosed in triple backticks: ```python ... `
 
 6.  **SCENE CLASS:**
     *   Define one main scene class that inherits from `Scene`. Consistently name this class `ManimScene` (e.g., `class ManimScene(Scene):`). The backend service will use this name.
+    *   The `construct(self)` method of this scene should NOT call `super().construct()` if it directly inherits from `manim.Scene`.
 
 7.  **VALID MANIM API:** Ensure all Manim classes and functions used are standard parts of the Manim Community library (v0.18+) and are used with correct arguments. Do not use non-existent animation classes or pass invalid keyword arguments.
 
@@ -131,6 +132,32 @@ Output *only* the raw Python code, enclosed in triple backticks: ```python ... `
     *   INCORRECT USAGE (DO NOT DO THIS): `self.my_helper_function(args)` for a function that is defined globally.
     *   If you want to call the function with `self.`, then define it as a method INSIDE the scene class.
     *   Be consistent: either define all helper functions as class methods, or all as global functions.
+
+10. **CAMERA MANIPULATION (2D SCENES):**
+    *   For camera actions like zooming or panning in a 2D `Scene`, manipulate `self.camera.frame`.
+    *   Use the `.animate` syntax for these camera frame animations. For example:
+        *   To zoom out (make things appear smaller): `self.play(self.camera.frame.animate.scale(1.2))`
+        *   To zoom in (make things appear larger): `self.play(self.camera.frame.animate.scale(0.8))`
+        *   To pan/move the camera's view: `self.play(self.camera.frame.animate.move_to(SOME_MOBJECT_OR_POINT))`
+    *   Avoid unusual or direct manipulations of `self.camera` object itself unless it's a well-established Manim pattern for a specific effect.
+
+11. **PYTHON FUNCTION CALLS & ANIMATION SEQUENCES:**
+    *   Remember Python's function call syntax: once a keyword argument is used, all subsequent arguments must also be keyword arguments.
+    *   For `self.play()` with multiple animations and settings, use one of these patterns:
+        *   **CORRECT:** `self.play(animation1, animation2, run_time=1, rate_func=linear)`
+        *   **CORRECT:** For sequential animations, use separate `self.play()` calls:
+            ```python
+            self.play(animation1, run_time=0.5)
+            self.play(animation2, run_time=0.5)
+            ```
+        *   **CORRECT:** For complex sequences, use `Succession` or `LaggedStart`:
+            ```python
+            self.play(Succession(animation1, animation2), run_time=2)
+            ```
+        *   **INCORRECT:** Do NOT mix keyword and positional arguments like this:
+            ```python
+            self.play(animation1, run_time=0.5, animation2)  # SyntaxError!
+            ```
 
 Remember to output *only* the Python code block.
 ''',

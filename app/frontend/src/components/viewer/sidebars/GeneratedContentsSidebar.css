@@ -8,27 +8,28 @@
     overflow: hidden;
   }
 
-  .sidebar-menu {
+  .sidebar-header {
     display: flex;
-    flex-direction: column;
+    justify-content: space-around;
     padding: 10px;
+    background-color: #eee;
+    border-bottom: 1px solid #ccc;
   }
 
-  .menu-button {
-    padding: 10px;
-    margin: 5px 0;
+  .header-button {
+    padding: 8px 12px;
     background: none;
     border: none;
-    text-align: left;
     cursor: pointer;
-    transition: background-color 0.3s;
+    transition: background-color 0.3s, color 0.3s;
+    border-radius: 4px;
   }
 
-  .menu-button:hover {
+  .header-button:hover {
     background-color: #e0e0e0;
   }
 
-  .menu-button.active {
+  .header-button.active {
     background-color: #a259ff;
     color: white;
   }

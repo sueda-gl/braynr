@@ -63,11 +63,11 @@ export const GeneratedContentsSidebar: React.FC<GeneratedContentsSidebarProps> =
 
   return (
     <div className="generated-contents-sidebar">
-      <div className="sidebar-menu">
+      <div className="sidebar-header">
         {menuItems.map(item => (
           <button
             key={item}
-            className={`menu-button ${activeItem === item ? 'active' : ''}`}
+            className={`header-button ${activeItem === item ? 'active' : ''}`}
             onClick={() => setActiveItem(item)}
           >
             {item}
