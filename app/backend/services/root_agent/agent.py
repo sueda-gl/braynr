@@ -1,4 +1,5 @@
 from google.adk.agents import SequentialAgent, LlmAgent
+from google.adk.models.lite_llm import LiteLlm
 import os
 from dotenv import load_dotenv
 
@@ -10,12 +11,17 @@ GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 if not GOOGLE_API_KEY:
     raise ValueError("GOOGLE_API_KEY environment variable not found. Please add it to your .env file.")
 
+# Get OpenAI API key from environment
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+if not OPENAI_API_KEY:
+    raise ValueError("OPENAI_API_KEY environment variable not found. Please add it to your .env file.")
+
 # --- 1. Define Sub-Agents for Each Pipeline Stage ---
 
 # Clear Explanation Agent
 clear_explanation_agent = LlmAgent(
     name="ClearExplanationAgent",
-    model="gemini-2.0-flash-001",
+    model=LiteLlm(model="openai/gpt-4o"),
     instruction="""
 Du bist ein hilfreicher Erklärer von technischen und abstrakten Konzepten.
 Der Benutzer hat ein Bild bereitgestellt (was zum Thema führt: {topic}).
@@ -35,7 +41,7 @@ Gib nur die Erklärung aus.
 # Concept Separator Agent
 concept_separator_agent = LlmAgent(
     name="ConceptSeparatorAgent",
-    model="gemini-2.0-flash-001",
+    model=LiteLlm(model="openai/gpt-4o"),
     instruction="""
 You are an expert at identifying key components of explanations.
 Take the {explanation} and break it down into a list of its fundamental concepts.
@@ -48,7 +54,7 @@ Output only the list of concepts as bullet points.
 # Storyboard Creator Agent
 storyboard_creator_agent = LlmAgent(
     name="StoryboardCreatorAgent",
-    model="gemini-2.0-flash-001",
+    model=LiteLlm(model="openai/gpt-4o"),
     instruction="""
 You are a storyboard planner.
 Given a list of concepts: {concepts}, create an ordered storyboard with visual scenes and brief captions to teach each concept clearly.
@@ -61,7 +67,7 @@ Structure it as a list of steps with short titles and descriptions.
 # Storyboard Enhancer Agent
 storyboard_enhancer_agent = LlmAgent(
     name="StoryboardEnhancerAgent",
-    model="gemini-2.0-flash-001",
+    model=LiteLlm(model="openai/gpt-4o"),
     instruction="""
 You are a visual storyteller.
 Enhance the provided storyboard: {storyboard} by adding narration, transitions, and visual suggestions for each step. You have to clearly state 
@@ -75,14 +81,57 @@ Keep it suitable for an animated explainer using Manim.
 # Code Generator Agent
 code_generator_agent = LlmAgent(
     name="CodeGeneratorAgent",
-    model="gemini-2.0-flash-001",
-    instruction="""
-You are a Manim animation code generator.
-Given an enhanced storyboard: {enhanced_storyboard}, write the complete Python code using the Manim library to visualize the content.
-Include titles, annotations, and transitions where needed.
-Output only the code, enclosed in triple backticks: ```python ... ```
-""",
-    description="Generates Manim code from a storyboard.",
+    model=LiteLlm(model="openai/gpt-4o"),
+    instruction='''
+You are an expert Manim animation code generator, creating scripts for Manim Community v0.18.0 or newer.
+Given an enhanced storyboard: {enhanced_storyboard}, write a complete Python script to visualize the content.
+Output *only* the raw Python code, enclosed in triple backticks: ```python ... ```
+
+**CRITICAL REQUIREMENTS FOR THE GENERATED MANIM SCRIPT:**
+
+1.  **START WITH:** The script MUST begin *exactly* with `from manim import *`. Standard Python imports like `import numpy as np` are allowed if needed.
+
+2.  **NO EXTERNAL ASSETS (VERY IMPORTANT FOR THIS TEST):**
+    *   ABSOLUTELY DO NOT USE `SVGMobject`.
+    *   ABSOLUTELY DO NOT USE `ImageMobject`.
+    *   All visuals MUST be created using ONLY Manim's built-in shapes (e.g., `Circle`, `Square`, `Rectangle`, `RoundedRectangle`, `Line`, `Polygon`, `Dot`, `Arrow`, `Triangle`) and Manim's text objects (`Text`, `Tex`).
+    *   Do NOT reference any external files (e.g., `.svg`, `.png`, `.jpg`, `.mp3`, `.wav`).
+    *   Do NOT use `self.add_sound()` or any other sound-related functions.
+
+3.  **COLORS:**
+    *   Use Manim's predefined color constants (e.g., `RED`, `BLUE`, `GREEN`, `WHITE`, `BLACK`) or hexadecimal color strings (e.g., `color='#FFC0CB'`).
+    *   If a function like `def random_color():` is used, it MUST return a valid Manim color format (preferably a hex string like `f"#{int(r*255):02x}{int(g*255):02x}{int(b*255):02x}"` if r,g,b are 0-1 floats from np.random.uniform, or Manim color constants).
+    *   AVOID `Color(...)` unless `from manim.utils.color import Color` is also included and used correctly as `Color(...)`.
+
+4.  **RECTANGLES AND POLYGONS:**
+    *   For a simple rectangle, use `Rectangle(width=W, height=H, color=C)`. The `Rectangle` class DOES NOT accept a `corner_radius` argument.
+    *   For a rectangle with rounded corners, you MUST use `RoundedRectangle(corner_radius=0.2, width=3, height=1, color=BLUE)`.
+    *   When creating a `Polygon` with multiple vertices, pass each vertex (which can be a Manim vector like `LEFT`, `UP`, or an explicit coordinate like `np.array([1,1,0])` or `[1,1,0]`) as a separate argument to `Polygon`. 
+        CORRECT: `my_poly = Polygon(LEFT, UP, RIGHT, color=BLUE)` 
+        CORRECT: `my_poly = Polygon([-1,-1,0], [1,-1,0], [1,1,0], [-1,1,0], color=GREEN)`
+        INCORRECT (DO NOT DO THIS): `my_poly = Polygon([LEFT, UP, RIGHT, DOWN], color=BLUE)` (i.e., do not pass a list of vectors/points as the *first single* argument if you intend them to be separate vertices).
+
+5.  **RATE FUNCTIONS (e.g., `smooth`, `linear`):**
+    *   If you want to apply a rate function to an animation, it MUST be passed as the `rate_func` keyword argument to the `self.play()` method itself.
+    *   CORRECT USAGE: `self.play(FadeIn(my_object), Create(another_object), rate_func=smooth, run_time=2)`
+    *   INCORRECT USAGE (DO NOT DO THIS): `self.play(FadeIn(my_object, rate_func=smooth))` or `self.play(Create(my_object, rate_functions=linear))`.
+
+6.  **SCENE CLASS:**
+    *   Define one main scene class that inherits from `Scene`. Consistently name this class `ManimScene` (e.g., `class ManimScene(Scene):`). The backend service will use this name.
+
+7.  **VALID MANIM API:** Ensure all Manim classes and functions used are standard parts of the Manim Community library (v0.18+) and are used with correct arguments. Do not use non-existent animation classes or pass invalid keyword arguments.
+
+8.  **CONCISENESS:** The animation should be relatively simple and render quickly for testing (suitable for Manim's `-ql` flag).
+
+9.  **HELPER FUNCTIONS:** If you define helper functions outside the main scene class:
+    *   They must be called directly by their name (e.g., `result = my_helper_function(args)`), NOT using `self.` 
+    *   INCORRECT USAGE (DO NOT DO THIS): `self.my_helper_function(args)` for a function that is defined globally.
+    *   If you want to call the function with `self.`, then define it as a method INSIDE the scene class.
+    *   Be consistent: either define all helper functions as class methods, or all as global functions.
+
+Remember to output *only* the Python code block.
+''',
+    description="Generates asset-free Manim code with strict rules for shapes, colors, rate functions, and no external files.",
     output_key='generated_code',
 )
 
@@ -91,7 +140,7 @@ Output only the code, enclosed in triple backticks: ```python ... ```
 # Takes the code generated by the previous agent (read from state) and provides feedback.
 code_reviewer_agent = LlmAgent(
     name="CodeReviewerAgent",
-    model='gemini-2.0-flash-001',
+    model=LiteLlm(model="openai/gpt-4o"),
     instruction="""You are an expert Python Code Reviewer. 
     Your task is to provide constructive feedback on the provided code.
 
@@ -121,7 +170,7 @@ Output *only* the review comments or the "No major issues" statement.
 # Takes the original code and the review comments (read from state) and refactors the code.
 code_refactorer_agent = LlmAgent(
     name="CodeRefactorerAgent",
-    model='gemini-2.0-flash-001',
+    model=LiteLlm(model="openai/gpt-4o"),
     instruction="""You are a Python Code Refactoring AI.
 Your goal is to improve the given Python code based on the provided review comments.
 

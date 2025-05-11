@@ -22,7 +22,11 @@ export const GeneratedContentsSidebar: React.FC<GeneratedContentsSidebarProps> =
     chatMessages,       // Get these from the hook
     startAgentProcessing, // Get these from the hook
     statusMessage,
-    errorMessage
+    errorMessage,
+    // Destructure the new state values for video display
+    videoUrl, 
+    manimError,
+    finalManimCode 
   } = useAgentProcessor();
 
   const [activeItem, setActiveItem] = useState<string | null>('Video Explanations'); // Default to Video Explanations
@@ -98,6 +102,10 @@ export const GeneratedContentsSidebar: React.FC<GeneratedContentsSidebarProps> =
               capturedImageDataUrl={capturedImageDataUrl}
               statusMessage={statusMessage}
               errorMessage={errorMessage}
+              // Pass the new props for video display
+              videoUrl={videoUrl}
+              manimError={manimError}
+              finalManimCode={finalManimCode}
             />
           </div>
         ) : (

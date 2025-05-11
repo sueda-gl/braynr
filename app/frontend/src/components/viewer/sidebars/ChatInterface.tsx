@@ -2,6 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 // import { useAgentProcessor } from '../../../hooks/useAgentProcessor'; // No longer call the hook directly
 import './ChatInterface.css'; // We will create this CSS file later
 
+// Define VIDEO_SRC_BASE_URL for constructing video URLs
+const VIDEO_SRC_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+
 // TODO: Move ChatMessage to a shared types file (e.g., src/types/chat.ts)
 interface ChatMessage {
   id: string;
@@ -18,6 +21,10 @@ interface ChatInterfaceProps {
   capturedImageDataUrl: string | null;
   statusMessage: string;
   errorMessage: string | null;
+  // Add new props for video display
+  videoUrl?: string | null;
+  manimError?: string | null;
+  finalManimCode?: string | null;
 }
 
 export const ChatInterface: React.FC<ChatInterfaceProps> = ({
@@ -25,16 +32,19 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   chatMessages,
   startAgentProcessing,
   capturedImageDataUrl,
-  // statusMessage, // included for completeness, can be used in UI
-  // errorMessage
+  statusMessage, // Now we might want to use this for more detailed status
+  errorMessage,  // And this for errors not coming from Manim
+  // Destructure new props
+  videoUrl,
+  manimError,
+  finalManimCode
 }) => {
   // Logs are good for seeing what props are received
-  console.log('--- ChatInterface Props ---');
-  console.log('capturedImageDataUrl:', capturedImageDataUrl?.substring(0, 50) + '...');
-  console.log('chatMessages:', JSON.stringify(chatMessages, null, 2));
-  console.log('agentStatus:', agentStatus);
-  // console.log('statusMessage:', statusMessage);
-  // console.log('errorMessage:', errorMessage);
+  console.log('--- Sidebar ChatInterface Props ---');
+  console.log('Agent Status:', agentStatus);
+  console.log('Video URL:', videoUrl);
+  console.log('Manim Error:', manimError);
+  console.log('Final Manim Code Present:', !!finalManimCode);
 
   const [currentMessage, setCurrentMessage] = useState('');
   const chatBodyRef = useRef<HTMLDivElement>(null);
@@ -44,9 +54,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       startAgentProcessing(currentMessage.trim());
       setCurrentMessage('');
     } else if (!capturedImageDataUrl) {
-      // TODO: Optionally notify user they need to capture a screenshot first
       console.warn('ChatInterface: No screenshot captured. Cannot send message.');
-      // alert('Please capture a screenshot before sending a message.');
+      alert('Please capture a screenshot before sending a message.');
     }
   };
 
@@ -55,7 +64,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     if (chatBodyRef.current) {
       chatBodyRef.current.scrollTop = chatBodyRef.current.scrollHeight;
     }
-  }, [chatMessages]);
+  }, [chatMessages, agentStatus]); // Added agentStatus to scroll on status changes too
 
   const isProcessing = agentStatus === 'initiating' || agentStatus === 'connecting' || agentStatus === 'processing';
 
@@ -76,12 +85,66 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
             </div>
           </div>
         ))}
-        {isProcessing && chatMessages.length > 0 && (
-          <div className="chat-message agent typing-indicator">
+
+        {/* Display Agent Status during processing (can use statusMessage prop) */}
+        {isProcessing && statusMessage && (
+          <div className="chat-message agent status">
              <div className="chat-message-bubble">
-                Agent is thinking...
+                {statusMessage} {/* Or a spinner + statusMessage */}
              </div>
           </div>
+        )}
+
+        {/* Display Final Output: Video, Manim Error, or Fallback Code */}
+        {agentStatus === 'completed' && (
+            <div className="agent-final-output chat-message agent final">
+                <div className="chat-message-bubble">
+                    <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>Agent Output:</p>
+                    {videoUrl ? (
+                        <div>
+                            <p>Generated Video:</p>
+                            <video 
+                                key={videoUrl} 
+                                controls 
+                                src={`${VIDEO_SRC_BASE_URL}${videoUrl}`}
+                                width="100%" 
+                                style={{ maxWidth: '100%', display: 'block', borderRadius: '8px'}} // Adjusted for sidebar
+                                onError={(e) => console.error('Video player error:', e)}
+                            >
+                                Your browser does not support the video tag. 
+                                <a href={`${VIDEO_SRC_BASE_URL}${videoUrl}`} download>Download video</a>
+                            </video>
+                        </div>
+                    ) : manimError ? (
+                        <div>
+                            <p style={{ color: 'red', fontWeight: 'bold' }}>Error generating video:</p>
+                            <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all', color: 'red' }}>{manimError}</pre>
+                            {finalManimCode && (
+                                <details style={{marginTop: '8px'}}>
+                                    <summary style={{cursor: 'pointer', fontSize: '0.9em'}}>Show Manim Code (for debugging)</summary>
+                                    <pre className="manim-code-display">{finalManimCode}</pre>
+                                </details>
+                            )}
+                        </div>
+                    ) : finalManimCode ? (
+                        <div>
+                            <p>Manim Code Generated (video not available):</p>
+                            <pre className="manim-code-display">{finalManimCode}</pre>
+                        </div>
+                    ) : (
+                        <p>Processing complete, but no specific output available.</p>
+                    )}
+                </div>
+            </div>
+        )}
+
+        {/* Display general error messages from the hook if not a Manim error during completed state */}
+        {errorMessage && agentStatus === 'failed' && (
+             <div className="chat-message agent error">
+                <div className="chat-message-bubble">
+                    Error: {errorMessage}
+                </div>
+            </div>
         )}
       </div>
       <div className="chat-input-area">

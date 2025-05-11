@@ -18,6 +18,9 @@ from google.adk.sessions import InMemorySessionService
 from google.adk.runners import Runner
 from google.genai import types
 
+# Import the new Manim service
+from .manim_service import execute_manim_code
+
 # Define status constants for clarity
 JOB_STATUS_PROCESSING = "PROCESSING"
 JOB_STATUS_COMPLETED = "COMPLETED"
@@ -183,6 +186,38 @@ async def process_agent_job(job_id: int, input_text: str, user_prompt: str | Non
             # Get the final code (or empty string if not available)
             final_code = final_state.get('refactored_code', 'No refactored code produced.')
             
+            # --- Dynamically determine scene name --- 
+            # This is a simple approach; robust parsing might use AST
+            actual_scene_name = "ManimScene" # Default if not found
+            if final_code and isinstance(final_code, str):
+                match = re.search(r"class\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(Scene\):", final_code)
+                if match:
+                    actual_scene_name = match.group(1)
+                    print(f"Job {job_id}: Dynamically determined scene name: {actual_scene_name}")
+                else:
+                    print(f"Job {job_id}: Could not dynamically determine scene name, using default: {actual_scene_name}")
+            # --- End dynamic scene name --- 
+
+            # --- Call Manim Execution Service --- 
+            video_url_path_part = None
+            manim_processing_error = None
+
+            if final_code and "No refactored code produced." not in final_code:
+                print(f"Job {job_id}: Attempting Manim execution for scene: {actual_scene_name}")
+                video_url_path_part, manim_processing_error = await execute_manim_code(job_id_str, final_code, actual_scene_name)
+            else:
+                print(f"Job {job_id}: Skipping Manim execution as no refactored code was produced.")
+
+            final_video_url = None
+            if video_url_path_part:
+                # This URL will be relative to the host, e.g., /static_manim/job_id/media/...
+                # The frontend will prepend http://localhost:8000 or its configured API base.
+                final_video_url = f"/static_manim/{video_url_path_part}"
+                print(f"Job {job_id}: Manim video URL to send to frontend: {final_video_url}")
+            elif manim_processing_error:
+                 print(f"Job {job_id}: Manim processing error: {manim_processing_error}")
+            # --- End Manim Execution Call ---
+
             # Update job status to completed FIRST
             await update_job_status_and_broadcast(
                 db, job_id, job_id_str, 
@@ -192,9 +227,14 @@ async def process_agent_job(job_id: int, input_text: str, user_prompt: str | Non
             )
             
             # Send final result
-            ws_final_msg = WebSocketFinalResult(job_id=job_id, refactored_code=final_code, video_url=None, manim_error=None).model_dump()
+            ws_final_msg = WebSocketFinalResult(
+                job_id=job_id, 
+                refactored_code=final_code, 
+                video_url=final_video_url, 
+                manim_error=manim_processing_error
+            ).model_dump()
             
-            print(f"Job {job_id}: PREPARING TO SEND FINAL RESULT. Code (first 100 chars): {str(final_code)[:100]}. Message object: {ws_final_msg}")
+            print(f"Job {job_id}: PREPARING TO SEND FINAL RESULT. Video URL: {final_video_url}, Manim Error: {manim_processing_error}. Message: {ws_final_msg}")
             # Introduce a small delay to allow WebSocket connection to fully register
             await asyncio.sleep(0.2) # Adjust delay if needed, e.g., 0.1 to 0.5 seconds
             await manager.broadcast_to_job(job_id_str, ws_final_msg)

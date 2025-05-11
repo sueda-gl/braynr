@@ -26,8 +26,10 @@ export interface WebSocketPartialResultMessage extends WebSocketMessageBase {
 
 export interface WebSocketFinalResultMessage extends WebSocketMessageBase {
     type: "final_result";
-    refactored_code?: string;
-    message: string;
+    refactored_code?: string | null;
+    video_url?: string | null;
+    manim_error?: string | null;
+    message?: string;
 }
 
 export interface WebSocketErrorMessage extends WebSocketMessageBase {
